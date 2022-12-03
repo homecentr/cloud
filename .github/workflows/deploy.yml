@@ -1,0 +1,37 @@
+name: Deploy master
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  assign_version:
+    name: "Deploy to production"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to allow adding git tags
+      issues: write # to allow linking issues to releases
+      packages: read
+    env:
+      TF_WORKSPACE: prod
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Determine release version and create git tag"
+        uses: docker://ghcr.io/codfish/semantic-release-action:v1.9.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2.0.3
+        with:
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_CLOUD_TOKEN }}
+
+      - name: Terraform Init
+        run: yarn run init
+
+      - name: Terraform Validate
+        run: yarn run validate
+
+      - name: Terraform Apply
+        run: yarn run prod:apply

@@ -1,0 +1,92 @@
+name: CI - Pull Request
+on:
+  pull_request:
+
+jobs:
+  deploy_lab:
+    name: "Deploy to Lab"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      TF_WORKSPACE: lab
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2.0.3
+        with:
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_CLOUD_TOKEN }}
+
+      - name: Terraform Init
+        id: init
+        run: yarn run init
+
+      - name: Verify Terraform formatting
+        id: fmt
+        run: yarn run format:check
+
+      - name: Validate Terraform
+        id: validate
+        run: yarn run validate
+
+      - name: Apply terraform
+        run: yarn run lab:apply -var 'aad_credentials=${{ secrets.AZUREAD_CREDENTIALS_LAB }}'
+
+  plan_prod:
+    name: "Plan Prod"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write # To allow posting the comment
+    env:
+      TF_WORKSPACE: "prod"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2.0.3
+        with:
+          cli_config_credentials_token: ${{ secrets.TERRAFORM_CLOUD_TOKEN }}
+
+      - name: Terraform Init
+        id: init
+        run: yarn run init
+
+      - name: Terraform Plan
+        id: plan
+        run: yarn run prod:plan -var 'aad_credentials=${{ secrets.AZUREAD_CREDENTIALS_PROD }}'
+        continue-on-error: true
+
+      - name: Update Pull Request
+        uses: actions/github-script@v6.3.3
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Initialization \`${{ steps.init.outcome }}\`
+            #### Terraform Plan \`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Report Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
