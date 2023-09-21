@@ -28,5 +28,10 @@ cloudflare_apps = [
     subdomain        = "cyberchef"
     display_name     = "CyberChef"
     allow_non_admins = true
+  },
+  {
+    subdomain        = "nvr"
+    display_name     = "Frigate NVR"
+    allow_non_admins = true
   }
 ]
