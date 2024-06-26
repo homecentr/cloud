@@ -1,6 +1,7 @@
 resource "azuread_application" "cloudflare" {
-  display_name            = "Cloudflare Access${var.display_name_environment_suffix}"
+  display_name            = "Cloudflare Access"
   sign_in_audience        = "AzureADMyOrg"
+  logo_image              = filebase64("../icons/cloudflare.png")
   group_membership_claims = ["ApplicationGroup"]
 
   web {
@@ -59,12 +60,12 @@ resource "azuread_application" "cloudflare" {
 }
 
 resource "azuread_application_password" "cloudflare" {
-  application_object_id = azuread_application.cloudflare.object_id
-  end_date_relative     = "17280h"
+  application_id    = azuread_application.cloudflare.id
+  end_date_relative = "17280h"
 }
 
 resource "azuread_service_principal" "cloudflare" {
-  application_id               = azuread_application.cloudflare.application_id
+  client_id                    = azuread_application.cloudflare.client_id
   app_role_assignment_required = false
 
   owners = [

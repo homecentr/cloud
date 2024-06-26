@@ -16,8 +16,3 @@ resource "azuread_group_member" "administrators_admin" {
   group_object_id  = azuread_group.administrators.object_id
   member_object_id = data.azuread_user.admin.object_id
 }
-
-resource "azuread_group_member" "administrators_e2e_admin" {
-  group_object_id  = azuread_group.administrators.object_id
-  member_object_id = data.azuread_user.e2e_admin.object_id
-}

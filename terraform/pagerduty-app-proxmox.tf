@@ -1,5 +1,5 @@
 resource "pagerduty_service" "proxmox" {
-  name                    = "Proxmox VE${var.display_name_environment_suffix}"
+  name                    = "Proxmox VE"
   auto_resolve_timeout    = 14400
   acknowledgement_timeout = 600
   escalation_policy       = pagerduty_escalation_policy.default.id
